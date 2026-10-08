@@ -1,73 +1,112 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { COLORS, RADIUS } from '../theme';
-
-const STEPS = [
-  'Order placed',
-  'Store is preparing your order',
-  'Rider picked up your order',
-  'Delivered',
-];
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { COLORS, FONTS, RADIUS } from '../theme';
+import { useAuth, ORDER_STEPS } from '../context/AuthContext';
+import BanigBand from '../components/BanigBand';
 
 export default function TrackOrderScreen({ route, navigation }) {
-  const { order } = route.params;
-  const [current, setCurrent] = useState(0);
+  const { orders } = useAuth();
+  const order = orders.find((o) => o.id === route.params.orderId);
 
-  // Fake progress for now. Later, the backend pushes real status updates.
-  useEffect(() => {
-    if (current >= STEPS.length - 1) return;
-    const t = setTimeout(() => setCurrent((c) => c + 1), 4000);
-    return () => clearTimeout(t);
-  }, [current]);
+  if (!order) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.sub}>This order is no longer available.</Text>
+      </View>
+    );
+  }
 
-  const done = current === STEPS.length - 1;
+  const current = order.statusIndex;
+  const done = current === ORDER_STEPS.length - 1;
 
   return (
-    <View style={styles.page}>
-      <Text style={styles.title}>{done ? 'Enjoy your order!' : 'On its way'}</Text>
-      <Text style={styles.sub}>
-        {order.store.name} to {order.address}
-        {order.landmark ? ` (${order.landmark})` : ''}
-      </Text>
+    <ScrollView style={styles.page} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={styles.head}>
+        <Text style={styles.title}>{done ? 'Delivered. Enjoy!' : ORDER_STEPS[current].label}</Text>
+        <Text style={styles.sub}>
+          {order.storeName} to {order.address}
+          {order.landmark ? ` (${order.landmark})` : ''}
+        </Text>
+      </View>
+      <BanigBand id="track-band" height={10} />
 
-      <View style={styles.box}>
-        {STEPS.map((step, i) => {
+      <View style={[styles.box, { marginTop: 20 }]}>
+        {ORDER_STEPS.map((step, i) => {
           const reached = i <= current;
+          const last = i === ORDER_STEPS.length - 1;
           return (
-            <View key={step} style={styles.stepRow}>
-              <View style={[styles.dot, reached && styles.dotOn]} />
-              <Text style={[styles.stepText, reached && styles.stepTextOn]}>{step}</Text>
+            <View key={step.short} style={[styles.stepRow, last && { minHeight: 0 }]}>
+              <View style={styles.rail}>
+                <View style={[styles.dot, reached && styles.dotOn]} />
+                {!last && <View style={[styles.railLine, i < current && styles.railLineOn]} />}
+              </View>
+              <Text style={[styles.stepText, reached && styles.stepTextOn]}>{step.label}</Text>
             </View>
           );
         })}
       </View>
 
       <View style={styles.box}>
-        <Text style={styles.label}>Total to pay ({order.payment})</Text>
-        <Text style={styles.total}>₱{order.total}</Text>
+        {order.items.map((i) => (
+          <View key={i.id} style={styles.line}>
+            <Text style={styles.itemText}>
+              {i.qty} × {i.name}
+            </Text>
+            <Text style={styles.itemText}>₱{i.price * i.qty}</Text>
+          </View>
+        ))}
+        <View style={styles.line}>
+          <Text style={styles.muted}>Delivery fee</Text>
+          <Text style={styles.muted}>₱{order.deliveryFee}</Text>
+        </View>
+        <View style={styles.line}>
+          <Text style={styles.total}>Total ({order.payment})</Text>
+          <Text style={styles.total}>₱{order.total}</Text>
+        </View>
       </View>
 
-      {done && (
-        <Pressable style={styles.primary} onPress={() => navigation.popToTop()}>
-          <Text style={styles.primaryText}>Back to home</Text>
-        </Pressable>
-      )}
-    </View>
+      <Pressable style={styles.primary} onPress={() => navigation.popToTop()}>
+        <Text style={styles.primaryText}>Done</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.page, padding: 20, gap: 16 },
-  title: { fontSize: 28, fontWeight: '900', color: COLORS.ash },
-  sub: { fontSize: 14, color: COLORS.ashLight },
-  box: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.line, padding: 18, gap: 16 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: COLORS.line },
+  page: { flex: 1, backgroundColor: COLORS.page },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.page },
+  head: { padding: 20, paddingBottom: 18 },
+  title: { fontFamily: FONTS.display, fontSize: 28, lineHeight: 34, color: COLORS.ink },
+  sub: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.inkSoft, marginTop: 6 },
+  box: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    padding: 18,
+    gap: 10,
+  },
+  stepRow: { flexDirection: 'row', minHeight: 46 },
+  rail: { width: 18, alignItems: 'center' },
+  dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: COLORS.line, backgroundColor: COLORS.surface },
   dotOn: { backgroundColor: COLORS.pili, borderColor: COLORS.pili },
-  stepText: { fontSize: 15, color: COLORS.ashLight },
-  stepTextOn: { color: COLORS.ash, fontWeight: '700' },
-  label: { color: COLORS.ashLight, fontSize: 14 },
-  total: { color: COLORS.ash, fontSize: 24, fontWeight: '800' },
-  primary: { backgroundColor: COLORS.sili, borderRadius: RADIUS.md, paddingVertical: 16, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  railLine: { flex: 1, width: 2, backgroundColor: COLORS.line, marginVertical: 2 },
+  railLineOn: { backgroundColor: COLORS.pili },
+  stepText: { marginLeft: 12, fontFamily: FONTS.body, fontSize: 15, color: COLORS.inkSoft },
+  stepTextOn: { fontFamily: FONTS.semi, color: COLORS.ink },
+  line: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  itemText: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.ink },
+  muted: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.inkSoft },
+  total: { fontFamily: FONTS.heavy, fontSize: 15, color: COLORS.ink },
+  primary: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    backgroundColor: COLORS.sili,
+    borderRadius: RADIUS.md,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  primaryText: { fontFamily: FONTS.heavy, fontSize: 16, color: '#FFFFFF' },
 });

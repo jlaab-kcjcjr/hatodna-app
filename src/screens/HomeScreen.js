@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BRAND, COLORS, RADIUS } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS, RADIUS } from '../theme';
 import { STORES, CATEGORIES } from '../data/mockData';
-import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import StoreArt from '../components/StoreArt';
+import BanigBand from '../components/BanigBand';
+import CartBar from '../components/CartBar';
+
+// Bikol greetings based on the time of day.
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Marhay na aga';
+  if (hour < 18) return 'Marhay na hapon';
+  return 'Marhay na banggi';
+}
 
 export default function HomeScreen({ navigation }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
-  const { itemCount, subtotal } = useCart();
+  const firstName = user?.name ? user.name.split(' ')[0] : '';
 
   const stores = STORES.filter((s) => {
     const matchCategory = category === 'All' || s.category === category;
@@ -16,128 +29,148 @@ export default function HomeScreen({ navigation }) {
     return matchCategory && matchQuery;
   });
 
-  return (
-    <SafeAreaView style={styles.page} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>{BRAND.name}</Text>
-        <Text style={styles.tagline}>{BRAND.tagline}</Text>
+  const header = (
+    <View>
+      <View style={styles.top}>
+        <Text style={styles.greet}>
+          {greeting()}
+          {firstName ? `, ${firstName}` : ''}
+        </Text>
+        <Text style={styles.headline}>What are we bringing you today?</Text>
+      </View>
+
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={18} color={COLORS.inkSoft} />
         <TextInput
           style={styles.search}
           placeholder="Search stores in Albay"
-          placeholderTextColor={COLORS.ashLight}
+          placeholderTextColor={COLORS.inkSoft}
           value={query}
           onChangeText={setQuery}
         />
       </View>
 
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {CATEGORIES.map((c) => (
-            <Pressable
-              key={c}
-              onPress={() => setCategory(c)}
-              style={[styles.chip, category === c && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+      <BanigBand id="home-band" height={12} />
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {CATEGORIES.map((c) => (
+          <Pressable
+            key={c}
+            onPress={() => setCategory(c)}
+            style={[styles.chip, category === c && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {!user?.name && (
+        <Pressable style={styles.nudge} onPress={() => navigation.navigate('Profile')}>
+          <Ionicons name="person-add-outline" size={20} color={COLORS.ink} />
+          <Text style={styles.nudgeText}>Add your name and address so riders know who to look for.</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.ink} />
+        </Pressable>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.page} edges={['top']}>
       <FlatList
         data={stores}
         keyExtractor={(s) => s.id}
+        ListHeaderComponent={header}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <Text style={styles.empty}>No stores match that search. Try another category.</Text>
+          <Text style={styles.empty}>No stores match that search. Try another word or category.</Text>
         }
         renderItem={({ item }) => (
           <Pressable
             style={[styles.card, !item.isOpen && styles.cardClosed]}
             onPress={() => navigation.navigate('Store', { storeId: item.id })}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.storeName}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {item.town}, {item.eta}
-              </Text>
-              <Text style={styles.meta}>Delivery ₱{item.deliveryFee}</Text>
+            <StoreArt store={item} height={130} />
+            <View style={styles.cardBody}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.storeName}>{item.name}</Text>
+                <Text style={styles.meta}>
+                  {item.town}, {item.eta}
+                </Text>
+              </View>
+              <View style={[styles.pill, { backgroundColor: item.isOpen ? COLORS.piliSoft : COLORS.line }]}>
+                <Text style={[styles.pillText, { color: item.isOpen ? COLORS.pili : COLORS.inkSoft }]}>
+                  {item.isOpen ? 'Open' : 'Closed'}
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.status, { color: item.isOpen ? COLORS.pili : COLORS.ashLight }]}>
-              {item.isOpen ? 'Open' : 'Closed'}
-            </Text>
+            <Text style={styles.fee}>Delivery ₱{item.deliveryFee}</Text>
           </Pressable>
         )}
       />
-
-      {itemCount > 0 && (
-        <Pressable style={styles.cartBar} onPress={() => navigation.navigate('Cart')}>
-          <Text style={styles.cartBarText}>View cart ({itemCount})</Text>
-          <Text style={styles.cartBarText}>₱{subtotal}</Text>
-        </Pressable>
-      )}
+      <CartBar onPress={() => navigation.navigate('Cart')} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.page },
-  header: {
-    backgroundColor: COLORS.sili,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
-    borderBottomLeftRadius: RADIUS.lg,
-    borderBottomRightRadius: RADIUS.lg,
-  },
-  brand: { color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1 },
-  tagline: { color: '#FFE3E6', fontSize: 14, marginTop: 2, marginBottom: 14 },
-  search: {
-    backgroundColor: '#fff',
+  list: { paddingBottom: 110 },
+  top: { paddingHorizontal: 20, paddingTop: 12 },
+  greet: { fontFamily: FONTS.semi, fontSize: 14, color: COLORS.sili },
+  headline: { fontFamily: FONTS.display, fontSize: 30, lineHeight: 36, color: COLORS.ink, marginTop: 4 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 18,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.line,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: COLORS.ash,
   },
-  chips: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
+  search: { flex: 1, paddingVertical: 13, fontFamily: FONTS.body, fontSize: 15, color: COLORS.ink },
+  chips: { paddingHorizontal: 20, paddingVertical: 14, gap: 8 },
   chip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.line,
     backgroundColor: COLORS.surface,
   },
-  chipActive: { backgroundColor: COLORS.ash, borderColor: COLORS.ash },
-  chipText: { color: COLORS.ash, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  list: { paddingHorizontal: 16, paddingBottom: 100, gap: 10 },
-  card: {
+  chipActive: { backgroundColor: COLORS.ink, borderColor: COLORS.ink },
+  chipText: { fontFamily: FONTS.semi, fontSize: 14, color: COLORS.ink },
+  chipTextActive: { color: '#FFFFFF' },
+  nudge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    padding: 14,
+    backgroundColor: COLORS.abacaSoft,
+    borderRadius: RADIUS.md,
+  },
+  nudgeText: { flex: 1, fontFamily: FONTS.body, fontSize: 14, color: COLORS.ink },
+  card: {
+    marginHorizontal: 20,
+    marginBottom: 14,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.line,
+    overflow: 'hidden',
   },
   cardClosed: { opacity: 0.55 },
-  storeName: { fontSize: 17, fontWeight: '700', color: COLORS.ash, marginBottom: 4 },
-  meta: { fontSize: 13, color: COLORS.ashLight },
-  status: { fontWeight: '700', fontSize: 13 },
-  empty: { textAlign: 'center', color: COLORS.ashLight, marginTop: 40 },
-  cartBar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 24,
-    backgroundColor: COLORS.sili,
-    borderRadius: RADIUS.md,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cartBarText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  cardBody: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 12 },
+  storeName: { fontFamily: FONTS.display, fontSize: 19, color: COLORS.ink },
+  meta: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.inkSoft, marginTop: 2 },
+  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  pillText: { fontFamily: FONTS.semi, fontSize: 12 },
+  fee: { fontFamily: FONTS.semi, fontSize: 13, color: COLORS.ink, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 14 },
+  empty: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.inkSoft, marginTop: 40, paddingHorizontal: 20 },
 });
