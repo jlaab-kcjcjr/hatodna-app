@@ -1,5 +1,5 @@
-// Sample data so the app works before the backend exists.
-// Later, this gets replaced by API calls to your server.
+// Sample data so the website works before the backend exists.
+// To show a real photo for a store, add: image: '/stores/your-photo.jpg' (put the file in public/stores).
 
 export const CATEGORIES = ['All', 'Food', 'Grocery', 'Pharmacy', 'Pabili'];
 
