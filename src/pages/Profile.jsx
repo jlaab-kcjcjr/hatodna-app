@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { LINKS } from '../config/links';
 import { initialsOf } from '../utils/format';
 import BanigBand from '../components/BanigBand';
+import MapPicker from '../components/MapPicker';
 
 const toLocal = (phone) => (phone?.startsWith('+63') ? `0${phone.slice(3)}` : phone ?? '');
 
@@ -23,6 +24,7 @@ function ProfileForm({ profile, email }) {
     default_address: profile.default_address ?? '',
     landmark: profile.landmark ?? '',
   });
+  const [pin, setPin] = useState(profile.default_lat != null ? { lat: profile.default_lat, lng: profile.default_lng } : null);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,6 +46,8 @@ function ProfileForm({ profile, email }) {
         phone,
         default_address: form.default_address.trim(),
         landmark: form.landmark.trim(),
+        default_lat: pin?.lat ?? null,
+        default_lng: pin?.lng ?? null,
       });
       setSaved(true);
     } catch (err) {
@@ -96,6 +100,16 @@ function ProfileForm({ profile, email }) {
         <label className="field">
           <span>Landmark</span>
           <input value={form.landmark} onChange={(e) => set('landmark', e.target.value)} placeholder="Near the chapel, blue gate" />
+          <span className="field-label-text">Default delivery pin</span>
+        <MapPicker
+          value={pin}
+          onChange={(point) => {
+            setPin(point);
+            setSaved(false);
+          }}
+          kind="customer"
+          height="15rem"
+        />
         </label>
         {error && <p className="form-error">{error}</p>}
         <button type="submit" className={`btn btn-block ${saved ? 'btn-pili' : 'btn-primary'}`} disabled={busy}>

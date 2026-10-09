@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const STORE_FIELDS = 'id, name, category, town, address, image_path, is_open, prep_minutes';
+const STORE_FIELDS = 'id, name, category, town, address, image_path, is_open, prep_minutes, lat, lng';
 
 // Only approved stores are visible to customers; the database security rules enforce this.
 export async function fetchStores() {
@@ -30,12 +30,10 @@ export async function fetchSettings() {
   return data;
 }
 
-// Until map locations are added, delivery is estimated at 2 km (the database uses the same value).
-export const ESTIMATED_KM = 2;
-
-export function estimateDeliveryFee(settings) {
-  if (!settings) return null;
-  return Number(settings.base_delivery_fee) + Number(settings.per_km_fee) * ESTIMATED_KM;
+// Same formula the database uses when the order is placed.
+export function estimateDeliveryFee(settings, km) {
+  if (!settings || km == null) return null;
+  return Number(settings.base_delivery_fee) + Number(settings.per_km_fee) * km;
 }
 
 export function etaOf(store) {

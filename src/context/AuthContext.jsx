@@ -128,12 +128,14 @@ export function AuthProvider({ children }) {
     setProfile(data);
   };
 
-  // Prices and fees are calculated by the database, never trusted from the browser.
-  const placeOrder = async ({ storeId, items, address, landmark, note }) => {
+    // Prices, distance, and fees are calculated by the database from the map pins, never trusted from the browser.
+  const placeOrder = async ({ storeId, items, address, landmark, note, lat, lng }) => {
     const { data, error } = await supabase.rpc('place_order', {
       p_store_id: storeId,
       p_items: items.map((i) => ({ product_id: i.id, qty: i.qty })),
       p_address: address,
+      p_lat: lat,
+      p_lng: lng,
       p_landmark: landmark,
       p_note: note,
       p_payment: 'cod',

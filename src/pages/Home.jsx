@@ -8,6 +8,7 @@ import { greeting, peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
 import BanigBand from '../components/BanigBand';
 import CartBar from '../components/CartBar';
+import { estimateRoadKm } from '../components/mapIcons';
 
 export default function Home() {
   const { profile } = useAuth();
@@ -37,7 +38,13 @@ export default function Home() {
 
   const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : '';
   const needsProfile = profile && (!profile.full_name || !profile.phone || !profile.default_address);
-  const deliveryFee = estimateDeliveryFee(data.settings);
+  const home = profile?.default_lat != null ? { lat: profile.default_lat, lng: profile.default_lng } : null;
+  const feeLine = (s) => {
+    const km = estimateRoadKm(s.lat != null ? { lat: s.lat, lng: s.lng } : null, home);
+    if (km == null) return home ? 'Location not set yet' : 'Pin your location in Profile to see fees';
+    const fee = estimateDeliveryFee(data.settings, km);
+    return fee != null ? `${km} km away, delivery ${peso(fee)}` : `${km} km away`;
+  };
   const stores = data.stores.filter((s) => {
     const matchCategory = category === 'All' || s.category === category;
     const matchQuery = s.name.toLowerCase().includes(query.toLowerCase());
@@ -123,7 +130,7 @@ export default function Home() {
                 </div>
                 <span className={`pill ${s.is_open ? 'pill-open' : 'pill-closed'}`}>{s.is_open ? 'Open' : 'Closed'}</span>
               </div>
-              <p className="store-fee">{deliveryFee !== null ? `Delivery from ${peso(deliveryFee)}` : ' '}</p>
+              <p className="store-fee">{feeLine(s)}</p>
             </Link>
           ))}
         </div>

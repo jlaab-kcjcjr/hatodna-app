@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { fetchSettings, estimateDeliveryFee } from '../lib/api';
+import { fetchSettings, fetchStore, estimateDeliveryFee } from '../lib/api';
+import { estimateRoadKm } from '../components/mapIcons';
 import { peso } from '../utils/format';
+import MapPicker from '../components/MapPicker';
 
 // "+639171234567" -> "09171234567" for display
 const toLocal = (phone) => (phone?.startsWith('+63') ? `0${phone.slice(3)}` : phone ?? '');
@@ -22,6 +24,10 @@ function CheckoutForm({ profile }) {
   const { updateProfile, placeOrder } = useAuth();
   const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
+  const [storeLocation, setStoreLocation] = useState(undefined); // undefined = loading, null = not pinned
+  const [pin, setPin] = useState(
+    profile.default_lat != null ? { lat: profile.default_lat, lng: profile.default_lng } : null
+  );
   const [form, setForm] = useState({
     name: profile.full_name ?? '',
     phone: toLocal(profile.phone),
@@ -34,40 +40,56 @@ function CheckoutForm({ profile }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchSettings().then((s) => {
-      if (!cancelled) setSettings(s);
-    });
+    Promise.all([fetchSettings(), fetchStore(store.id)])
+      .then(([s, storeData]) => {
+        if (cancelled) return;
+        setSettings(s);
+        setStoreLocation(storeData?.lat != null ? { lat: storeData.lat, lng: storeData.lng } : null);
+      })
+      .catch(() => {
+        if (!cancelled) setStoreLocation(null);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [store.id]);
 
   const set = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
     setError('');
   };
 
-  const deliveryFee = estimateDeliveryFee(settings);
+  const km = estimateRoadKm(storeLocation, pin);
+  const maxKm = settings ? Number(settings.max_delivery_km) : null;
+  const tooFar = km != null && maxKm != null && km > maxKm;
+  const deliveryFee = estimateDeliveryFee(settings, km);
   const serviceFee = settings ? Number(settings.service_fee) : null;
-  const estimatedTotal = deliveryFee !== null ? subtotal + deliveryFee + serviceFee : null;
+  const estimatedTotal = deliveryFee != null && serviceFee != null ? subtotal + deliveryFee + serviceFee : null;
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (storeLocation === null) return setError("This store hasn't pinned its location yet, so it can't take orders.");
     if (form.name.trim().length < 2) return setError('Enter your name so the store and rider know who ordered.');
     const phone = toInternational(form.phone);
     if (!phone) return setError('Enter your mobile number, like 0917 123 4567, so the rider can call you.');
-    if (!form.address.trim()) return setError('Enter your street and barangay so the rider can find you.');
+    if (!pin) return setError('Pin your delivery location on the map so the rider can find you.');
+    if (tooFar) return setError(`You're about ${km} km away, which is too far for this store. Choose a nearer store.`);
+    if (!form.address.trim()) return setError('Enter your street and barangay as well, to help the rider.');
 
     setBusy(true);
     setError('');
     try {
-      // Save name, phone, and the first address to the profile, so the order includes them.
+      // Save name, phone, and the first address and pin to the profile for next time.
       const changes = {};
       if (form.name.trim() !== profile.full_name) changes.full_name = form.name.trim();
       if (phone !== profile.phone) changes.phone = phone;
       if (!profile.default_address) {
         changes.default_address = form.address.trim();
         changes.landmark = form.landmark.trim();
+      }
+      if (profile.default_lat == null) {
+        changes.default_lat = pin.lat;
+        changes.default_lng = pin.lng;
       }
       if (Object.keys(changes).length > 0) await updateProfile(changes);
 
@@ -77,6 +99,8 @@ function CheckoutForm({ profile }) {
         address: form.address.trim(),
         landmark: form.landmark.trim(),
         note: form.note.trim(),
+        lat: pin.lat,
+        lng: pin.lng,
       });
       clearCart();
       navigate(`/orders/${order.id}`, { replace: true });
@@ -127,6 +151,23 @@ function CheckoutForm({ profile }) {
       </label>
 
       <h2 className="section-title">Deliver to</h2>
+      <p className="muted small">Pin the exact spot where the rider should hand over your order.</p>
+      <MapPicker
+        value={pin}
+        onChange={(point) => {
+          setPin(point);
+          setError('');
+        }}
+        kind="customer"
+      />
+      {storeLocation === null && (
+        <p className="notice-box">This store hasn't pinned its location yet, so it can't take orders right now.</p>
+      )}
+      {tooFar && (
+        <p className="notice-box">
+          You're about {km} km away. This store delivers up to {maxKm} km. Choose a store nearer to you.
+        </p>
+      )}
       <label className="field">
         <span>Street, barangay, town</span>
         <input value={form.address} onChange={(e) => set('address', e.target.value)} autoComplete="street-address" />
@@ -159,22 +200,22 @@ function CheckoutForm({ profile }) {
           <span className="muted">{peso(subtotal)}</span>
         </div>
         <div className="line">
-          <span className="muted">Delivery fee</span>
-          <span className="muted">{deliveryFee !== null ? peso(deliveryFee) : '...'}</span>
+          <span className="muted">Delivery fee{km != null ? ` (about ${km} km)` : ''}</span>
+          <span className="muted">{deliveryFee != null ? peso(deliveryFee) : pin ? '...' : 'Pin your location'}</span>
         </div>
         <div className="line">
           <span className="muted">Service fee</span>
-          <span className="muted">{serviceFee !== null ? peso(serviceFee) : '...'}</span>
+          <span className="muted">{serviceFee != null ? peso(serviceFee) : '...'}</span>
         </div>
         <div className="line line-total">
           <span>Total</span>
-          <span>{estimatedTotal !== null ? peso(estimatedTotal) : '...'}</span>
+          <span>{estimatedTotal != null ? peso(estimatedTotal) : '...'}</span>
         </div>
       </div>
       <p className="muted small form-note">The final amount is confirmed when you place the order.</p>
 
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" className="btn btn-primary btn-block place-btn" disabled={busy}>
+      <button type="submit" className="btn btn-primary btn-block place-btn" disabled={busy || tooFar || storeLocation === null}>
         {busy ? 'Placing order...' : 'Place order'}
       </button>
     </form>
