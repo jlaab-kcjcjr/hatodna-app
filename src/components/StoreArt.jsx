@@ -1,6 +1,7 @@
-import { UtensilsCrossed, ShoppingBasket, Pill, Bike } from 'lucide-react';
+import { UtensilsCrossed, ShoppingBasket, Pill, Bike, Store } from 'lucide-react';
 import { COLORS } from '../theme';
 import { initialsOf } from '../utils/format';
+import { publicUrl } from '../lib/api';
 import BanigBand from './BanigBand';
 
 const CATEGORY_ART = {
@@ -8,14 +9,15 @@ const CATEGORY_ART = {
   Grocery: { bg: COLORS.pili, fg: COLORS.abacaSoft, Icon: ShoppingBasket },
   Pharmacy: { bg: COLORS.ink, fg: COLORS.abaca, Icon: Pill },
   Pabili: { bg: COLORS.abaca, fg: COLORS.ink, Icon: Bike },
+  Other: { bg: COLORS.siliDeep, fg: COLORS.abacaSoft, Icon: Store },
 };
 
 // Shows the store's photo if it has one; otherwise an illustrated tile.
 export default function StoreArt({ store, className = '' }) {
-  const art = CATEGORY_ART[store.category] ?? CATEGORY_ART.Food;
+  const art = CATEGORY_ART[store.category] ?? CATEGORY_ART.Other;
 
-  if (store.image) {
-    return <img className={`store-art ${className}`} src={store.image} alt={store.name} />;
+  if (store.image_path) {
+    return <img className={`store-art ${className}`} src={publicUrl('store-images', store.image_path)} alt={store.name} />;
   }
 
   const Icon = art.Icon;

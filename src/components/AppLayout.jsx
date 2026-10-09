@@ -12,14 +12,15 @@ const TABS = [
 
 // Top menu on tablets and computers, bottom tab bar on phones.
 export default function AppLayout() {
-  const { user } = useAuth();
+  const { session, loading } = useAuth();
   const { pathname } = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (loading) return <p className="page-loading">Loading...</p>;
+  if (!session) return <Navigate to="/login" replace />;
 
   return (
     <div className="app">

@@ -1,20 +1,26 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ORDER_STEPS, statusOf } from '../data/orderSteps';
-import { useNow } from '../utils/useNow';
+import { shortStatus } from '../data/orderSteps';
 import { peso, formatDate } from '../utils/format';
 import { COLORS } from '../theme';
 import MayonMark from '../components/MayonMark';
 
+const pillClass = (status) => {
+  if (status === 'delivered') return 'pill-open';
+  if (status === 'declined' || status === 'cancelled') return 'pill-closed';
+  return 'pill-progress';
+};
+
 export default function Orders() {
-  const { orders } = useAuth();
-  const now = useNow(5000);
+  const { orders, ordersLoading } = useAuth();
 
   return (
     <div className="page page-narrow">
       <h1 className="page-title">Your orders</h1>
 
-      {orders.length === 0 ? (
+      {ordersLoading ? (
+        <p className="page-loading">Loading your orders...</p>
+      ) : orders.length === 0 ? (
         <div className="empty">
           <div className="empty-art">
             <MayonMark color={COLORS.line} sun={COLORS.abacaSoft} />
@@ -28,20 +34,18 @@ export default function Orders() {
       ) : (
         <ul className="order-list">
           {orders.map((o) => {
-            const step = statusOf(o, now);
-            const done = step === ORDER_STEPS.length - 1;
-            const count = o.items.reduce((sum, i) => sum + i.qty, 0);
+            const count = (o.order_items ?? []).reduce((sum, i) => sum + i.qty, 0);
             return (
               <li key={o.id}>
                 <Link to={`/orders/${o.id}`} className="order-row">
                   <div className="order-row-main">
-                    <p className="order-store">{o.storeName}</p>
+                    <p className="order-store">{o.store?.name ?? 'Store'}</p>
                     <p className="muted small">
-                      {formatDate(o.createdAt)}, {count} {count === 1 ? 'item' : 'items'}
+                      {formatDate(o.created_at)}, {count} {count === 1 ? 'item' : 'items'}
                     </p>
                     <p className="order-total">{peso(o.total)}</p>
                   </div>
-                  <span className={`pill ${done ? 'pill-open' : 'pill-progress'}`}>{ORDER_STEPS[step].short}</span>
+                  <span className={`pill ${pillClass(o.status)}`}>{shortStatus(o.status)}</span>
                 </Link>
               </li>
             );

@@ -1,20 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, UserRoundPlus, ChevronRight } from 'lucide-react';
-import { STORES, CATEGORIES } from '../data/mockData';
+import { CATEGORIES } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
+import { fetchStores, fetchSettings, estimateDeliveryFee, etaOf } from '../lib/api';
 import { greeting, peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
 import BanigBand from '../components/BanigBand';
 import CartBar from '../components/CartBar';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
-  const firstName = user.name ? user.name.split(' ')[0] : '';
+  const [data, setData] = useState({ loading: true, error: '', stores: [], settings: null });
+  const [attempt, setAttempt] = useState(0);
 
-  const stores = STORES.filter((s) => {
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchStores(), fetchSettings()])
+      .then(([stores, settings]) => {
+        if (!cancelled) setData({ loading: false, error: '', stores, settings });
+      })
+      .catch((err) => {
+        if (!cancelled) setData({ loading: false, error: err.message, stores: [], settings: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  const retry = () => {
+    setData((d) => ({ ...d, loading: true, error: '' }));
+    setAttempt((a) => a + 1);
+  };
+
+  const firstName = profile?.full_name ? profile.full_name.split(' ')[0] : '';
+  const needsProfile = profile && (!profile.full_name || !profile.phone || !profile.default_address);
+  const deliveryFee = estimateDeliveryFee(data.settings);
+  const stores = data.stores.filter((s) => {
     const matchCategory = category === 'All' || s.category === category;
     const matchQuery = s.name.toLowerCase().includes(query.toLowerCase());
     return matchCategory && matchQuery;
@@ -59,34 +83,47 @@ export default function Home() {
         ))}
       </div>
 
-      {!user.name && (
+      {needsProfile && (
         <Link to="/profile" className="nudge">
           <UserRoundPlus size={20} aria-hidden="true" />
-          <span>Add your name and address so riders know who to look for.</span>
+          <span>Add your name, mobile number, and address so riders can find and call you.</span>
           <ChevronRight size={18} aria-hidden="true" />
         </Link>
       )}
 
-      {stores.length === 0 ? (
+      {data.loading ? (
+        <p className="page-loading">Loading stores...</p>
+      ) : data.error ? (
         <div className="empty">
-          <p className="empty-title">No stores match that search.</p>
-          <p className="muted small">Try another word or category.</p>
+          <p className="empty-title">{data.error}</p>
+          <button type="button" className="btn btn-primary empty-btn" onClick={retry}>
+            Try again
+          </button>
+        </div>
+      ) : stores.length === 0 ? (
+        <div className="empty">
+          <p className="empty-title">{data.stores.length === 0 ? 'No stores yet.' : 'No stores match that search.'}</p>
+          <p className="muted small">
+            {data.stores.length === 0
+              ? 'Partner stores are joining soon. Check back later.'
+              : 'Try another word or category.'}
+          </p>
         </div>
       ) : (
         <div className="store-grid">
           {stores.map((s) => (
-            <Link key={s.id} to={`/store/${s.id}`} className={`store-card${s.isOpen ? '' : ' is-closed'}`}>
+            <Link key={s.id} to={`/store/${s.id}`} className={`store-card${s.is_open ? '' : ' is-closed'}`}>
               <StoreArt store={s} />
               <div className="store-card-body">
                 <div>
                   <h2 className="store-name">{s.name}</h2>
                   <p className="muted small">
-                    {s.town}, {s.eta}
+                    {s.town}, {etaOf(s)}
                   </p>
                 </div>
-                <span className={`pill ${s.isOpen ? 'pill-open' : 'pill-closed'}`}>{s.isOpen ? 'Open' : 'Closed'}</span>
+                <span className={`pill ${s.is_open ? 'pill-open' : 'pill-closed'}`}>{s.is_open ? 'Open' : 'Closed'}</span>
               </div>
-              <p className="store-fee">Delivery {peso(s.deliveryFee)}</p>
+              <p className="store-fee">{deliveryFee !== null ? `Delivery from ${peso(deliveryFee)}` : ' '}</p>
             </Link>
           ))}
         </div>

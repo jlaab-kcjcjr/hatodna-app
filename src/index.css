@@ -381,3 +381,16 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ===== Customer site connected to Supabase ===== */
+.page-loading { min-height: 50vh; display: grid; place-items: center; color: var(--ink-soft); font-weight: 600; }
+.btn-ghost { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--ink-soft); }
+.notice-box {
+  margin: 1rem 0; padding: 0.875rem 1rem; border-radius: var(--radius-sm);
+  background: var(--sili-soft); color: var(--sili-deep); font-weight: 600;
+}
+.form-note { margin-top: 0.5rem; }
+.menu-thumb { flex-shrink: 0; width: 4rem; height: 4rem; border-radius: var(--radius-sm); object-fit: cover; }
+.menu-item.is-soldout { opacity: 0.55; }
+.auth-form .field input { font-size: 1.0625rem; }

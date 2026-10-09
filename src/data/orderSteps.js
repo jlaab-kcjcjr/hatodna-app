@@ -1,17 +1,20 @@
-// Demo only. Once the backend exists, a real code is sent by SMS.
-export const DEMO_OTP = '123456';
-
+// The normal path of an order, in order.
 export const ORDER_STEPS = [
-  { short: 'Placed', label: 'Order placed' },
-  { short: 'Preparing', label: 'Store is preparing your order' },
-  { short: 'On the way', label: 'Rider is on the way' },
-  { short: 'Delivered', label: 'Delivered' },
+  { status: 'placed', short: 'Placed', label: 'Waiting for the store to accept' },
+  { status: 'preparing', short: 'Preparing', label: 'Store is preparing your order' },
+  { status: 'ready', short: 'Ready', label: 'Ready, a rider is picking it up' },
+  { status: 'on_the_way', short: 'On the way', label: 'Rider is on the way' },
+  { status: 'delivered', short: 'Delivered', label: 'Delivered' },
 ];
 
-const STEP_MS = 5000;
+// Orders that stopped before delivery.
+export const STOPPED = {
+  declined: { short: 'Declined', label: 'The store declined this order' },
+  cancelled: { short: 'Cancelled', label: 'You cancelled this order' },
+};
 
-// Demo only: an order moves one step forward every 5 seconds after it's placed,
-// so progress continues even after a page refresh. Later, the backend sends real updates.
-export function statusOf(order, now = Date.now()) {
-  return Math.min(Math.floor((now - order.createdAt) / STEP_MS), ORDER_STEPS.length - 1);
+export const stepIndex = (status) => ORDER_STEPS.findIndex((s) => s.status === status);
+
+export function shortStatus(status) {
+  return STOPPED[status]?.short ?? ORDER_STEPS[stepIndex(status)]?.short ?? status;
 }
