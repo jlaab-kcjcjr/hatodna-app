@@ -431,3 +431,7 @@ img { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) { .map-rider::before { animation: none; } }
 
 .field-label-text { display: block; margin-bottom: 0.375rem; font-size: 0.8125rem; font-weight: 600; }
+
+/* ===== Live tracking ===== */
+.track-map { margin-top: 1.25rem; }
+.track-caption { margin-top: 0.5rem; font-weight: 600; }
