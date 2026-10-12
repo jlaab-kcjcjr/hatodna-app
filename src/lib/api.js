@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const STORE_FIELDS = 'id, name, category, town, address, image_path, is_open, prep_minutes, lat, lng';
+const STORE_FIELDS = 'id, name, category, town, address, image_path, logo_path, is_open, prep_minutes, lat, lng';
 
 // Only approved stores are visible to customers; the database security rules enforce this.
 export async function fetchStores() {

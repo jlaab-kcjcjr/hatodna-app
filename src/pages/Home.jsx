@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchStores, fetchSettings, estimateDeliveryFee, etaOf } from '../lib/api';
 import { greeting, peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
+import StoreLogo from '../components/StoreLogo';
 import BanigBand from '../components/BanigBand';
 import CartBar from '../components/CartBar';
 import { estimateRoadKm } from '../components/mapIcons';
@@ -122,6 +123,7 @@ export default function Home() {
             <Link key={s.id} to={`/store/${s.id}`} className={`store-card${s.is_open ? '' : ' is-closed'}`}>
               <StoreArt store={s} />
               <div className="store-card-body">
+                <StoreLogo store={s} />
                 <div>
                   <h2 className="store-name">{s.name}</h2>
                   <p className="muted small">

@@ -510,3 +510,20 @@ input, select, textarea, button { max-width: 100%; }
   .register-actions { flex-wrap: wrap; }
   .remit-actions .btn { flex: 1; }
 }
+
+/* ===== Store logo and cover photo ===== */
+.store-logo {
+  position: relative; flex-shrink: 0; display: block; overflow: hidden;
+  border-radius: 50%; background: var(--surface); border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.store-logo img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.store-logo-md { width: 2.75rem; height: 2.75rem; }
+.store-logo-lg { width: 4.5rem; height: 4.5rem; margin-top: -2.75rem; border-width: 3px; box-shadow: 0 0.25rem 0.75rem rgba(42, 26, 22, 0.18); }
+.store-info-head { display: flex; align-items: flex-end; gap: 0.875rem; margin-bottom: 0.375rem; }
+.store-info-text { flex: 1; min-width: 0; }
+.store-info-text h1 { margin-bottom: 0.125rem; overflow-wrap: anywhere; }
+
+/* Cover photos fill their frame exactly on every phone */
+img.store-art { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; padding: 0; }
+img.store-art.store-hero-art { aspect-ratio: auto; height: clamp(12rem, 30vw, 18rem); }

@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { fetchStore, etaOf, publicUrl } from '../lib/api';
 import { peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
+import StoreLogo from '../components/StoreLogo';
 import CartBar from '../components/CartBar';
 
 export default function StorePage() {
@@ -58,10 +59,15 @@ export default function StorePage() {
 
       <div className="page store-body">
         <section className="store-info">
-          <h1>{store.name}</h1>
-          <p className="muted">
-            {store.town}, {etaOf(store)}
-          </p>
+          <div className="store-info-head">
+            <StoreLogo store={store} size="lg" />
+            <div className="store-info-text">
+              <h1>{store.name}</h1>
+              <p className="muted">
+                {store.town}, {etaOf(store)}
+              </p>
+            </div>
+          </div>
           <p className="muted">{store.address}</p>
           {!store.is_open && <p className="closed-box">Closed right now. You can browse the menu but not order yet.</p>}
         </section>
