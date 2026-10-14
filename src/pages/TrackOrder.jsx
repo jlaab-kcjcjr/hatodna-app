@@ -7,6 +7,7 @@ import { useNow } from '../utils/useNow';
 import { peso } from '../utils/format';
 import BanigBand from '../components/BanigBand';
 import RouteMap from '../components/RouteMap';
+import RiderCard from '../components/RiderCard';
 
 const TRACKING_STATUSES = ['preparing', 'ready', 'on_the_way'];
 const STALE_AFTER_MS = 3 * 60 * 1000;
@@ -86,6 +87,10 @@ export default function TrackOrder() {
         {order.landmark ? ` (${order.landmark})` : ''}
         {order.distance_km ? `, about ${order.distance_km} km` : ''}
       </p>
+
+      {tracking && order.rider_id && (
+        <RiderCard orderId={order.id} riderId={order.rider_id} status={order.status} />
+      )}
 
       {order.status === 'declined' && (
         <p className="notice-box">Reason: {order.decline_reason}. You were not charged.</p>
