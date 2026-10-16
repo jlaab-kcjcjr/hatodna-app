@@ -8,6 +8,7 @@ import { peso } from '../utils/format';
 import BanigBand from '../components/BanigBand';
 import RouteMap from '../components/RouteMap';
 import RiderCard from '../components/RiderCard';
+import RateRider from '../components/RateRider';
 
 const TRACKING_STATUSES = ['preparing', 'ready', 'on_the_way'];
 const STALE_AFTER_MS = 3 * 60 * 1000;
@@ -90,6 +91,10 @@ export default function TrackOrder() {
 
       {tracking && order.rider_id && (
         <RiderCard orderId={order.id} riderId={order.rider_id} status={order.status} />
+      )}
+
+      {order.status === 'delivered' && order.rider_id && (
+        <RateRider orderId={order.id} deliveredAt={order.delivered_at} now={now} />
       )}
 
       {order.status === 'declined' && (

@@ -542,3 +542,17 @@ img.store-art.store-hero-art { aspect-ratio: auto; height: clamp(12rem, 30vw, 18
   display: inline-flex; align-items: center; gap: 0.375rem; flex-shrink: 0; padding: 0.625rem 0.875rem;
   border-radius: var(--radius-sm); background: var(--pili); color: #fff; font-weight: 700; text-decoration: none;
 }
+
+/* ===== Rate your rider ===== */
+.rate-card { display: grid; justify-items: center; gap: 0.625rem; margin-top: 1rem; padding: 1.125rem 1rem; text-align: center; background: var(--surface); border: 1.5px solid var(--abaca); border-radius: var(--radius-md); }
+.rate-title { font-family: var(--font-display); font-size: 1.375rem; }
+.rate-stars { display: flex; gap: 0.25rem; }
+.rate-star { display: grid; place-items: center; width: 3rem; height: 3rem; padding: 0; border: 0; background: none; color: #cfc3b8; }
+.rate-star.on { color: var(--abaca); }
+.rate-star.on svg { fill: currentColor; }
+.rate-label { margin-top: -0.25rem; }
+.rate-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+.rate-tags .chip { flex-shrink: 1; }
+.rate-comment { display: grid; gap: 0.375rem; width: 100%; text-align: left; }
+.rate-comment textarea { width: 100%; padding: 0.625rem 0.75rem; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font: inherit; resize: vertical; }
+.rate-done { display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-color: var(--pili); color: var(--pili); font-weight: 600; }
