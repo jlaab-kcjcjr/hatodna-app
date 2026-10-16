@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { fetchStore, etaOf, publicUrl } from '../lib/api';
+import { fetchStore, fetchProductRatings, fetchStoreReviews, fetchStoreRatings, etaOf, publicUrl } from '../lib/api';
 import { peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
 import StoreLogo from '../components/StoreLogo';
@@ -11,16 +11,18 @@ import CartBar from '../components/CartBar';
 export default function StorePage() {
   const { storeId } = useParams();
   const { addItem, removeItem, qtyOf } = useCart();
-  const [data, setData] = useState({ loading: true, error: '', store: null });
+  const [data, setData] = useState({ loading: true, error: '', store: null, itemRatings: {}, reviews: [], rating: null });
 
   useEffect(() => {
     let cancelled = false;
-    fetchStore(storeId)
-      .then((store) => {
-        if (!cancelled) setData({ loading: false, error: '', store });
+    Promise.all([fetchStore(storeId), fetchProductRatings(storeId), fetchStoreReviews(storeId), fetchStoreRatings()])
+      .then(([store, itemRatings, reviews, ratings]) => {
+        if (!cancelled) {
+          setData({ loading: false, error: '', store, itemRatings, reviews, rating: ratings[storeId] ?? null });
+        }
       })
       .catch((err) => {
-        if (!cancelled) setData({ loading: false, error: err.message, store: null });
+        if (!cancelled) setData({ loading: false, error: err.message, store: null, itemRatings: {}, reviews: [], rating: null });
       });
     return () => {
       cancelled = true;
@@ -64,6 +66,13 @@ export default function StorePage() {
             <div className="store-info-text">
               <h1>{store.name}</h1>
               <p className="muted">
+                {data.rating ? (
+                  <span className="store-rating">
+                    <Star size={14} aria-hidden="true" />
+                    {Number(data.rating.average).toFixed(1)} ({data.rating.total}{' '}
+                    {data.rating.total === 1 ? 'rating' : 'ratings'}) ·{' '}
+                  </span>
+                ) : null}
                 {store.town}, {etaOf(store)}
               </p>
             </div>
@@ -86,7 +95,15 @@ export default function StorePage() {
                   <div className="menu-text">
                     <p className="menu-name">{p.name}</p>
                     {p.description && <p className="muted small">{p.description}</p>}
-                    <p className="menu-price">{p.is_available ? peso(p.price) : 'Sold out'}</p>
+                    <p className="menu-price">
+                      {p.is_available ? peso(p.price) : 'Sold out'}
+                      {data.itemRatings[p.id] && (
+                        <span className="menu-rating">
+                          <Star size={12} aria-hidden="true" />
+                          {Number(data.itemRatings[p.id].average).toFixed(1)} ({data.itemRatings[p.id].total})
+                        </span>
+                      )}
+                    </p>
                   </div>
                   {qty === 0 ? (
                     <button
@@ -125,6 +142,27 @@ export default function StorePage() {
               );
             })}
           </ul>
+        )}
+
+        {data.reviews.length > 0 && (
+          <>
+            <h2 className="section-title">What customers say</h2>
+            <ul className="store-reviews">
+              {data.reviews.map((r, i) => (
+                <li key={`${r.created_at}-${i}`}>
+                  <p>
+                    <span className="review-stars" aria-label={`${r.stars} out of 5 stars`}>
+                      {'★'.repeat(r.stars)}
+                      <span className="review-off">{'★'.repeat(5 - r.stars)}</span>
+                    </span>{' '}
+                    <strong>{r.reviewer}</strong>
+                  </p>
+                  {r.tags?.length > 0 && <p className="muted small">{r.tags.join(' · ')}</p>}
+                  {r.comment && <p className="review-comment">“{r.comment}”</p>}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 

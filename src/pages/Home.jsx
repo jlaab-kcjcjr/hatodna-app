@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, UserRoundPlus, ChevronRight } from 'lucide-react';
+import { Search, UserRoundPlus, ChevronRight, Star } from 'lucide-react';
 import { CATEGORIES } from '../data/categories';
 import { useAuth } from '../context/AuthContext';
-import { fetchStores, fetchSettings, estimateDeliveryFee, etaOf } from '../lib/api';
+import { fetchStores, fetchSettings, fetchStoreRatings, estimateDeliveryFee, etaOf } from '../lib/api';
 import { greeting, peso } from '../utils/format';
 import StoreArt from '../components/StoreArt';
 import StoreLogo from '../components/StoreLogo';
@@ -15,17 +15,17 @@ export default function Home() {
   const { profile } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
-  const [data, setData] = useState({ loading: true, error: '', stores: [], settings: null });
+  const [data, setData] = useState({ loading: true, error: '', stores: [], settings: null, ratings: {} });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchStores(), fetchSettings()])
-      .then(([stores, settings]) => {
-        if (!cancelled) setData({ loading: false, error: '', stores, settings });
+    Promise.all([fetchStores(), fetchSettings(), fetchStoreRatings()])
+      .then(([stores, settings, ratings]) => {
+        if (!cancelled) setData({ loading: false, error: '', stores, settings, ratings });
       })
       .catch((err) => {
-        if (!cancelled) setData({ loading: false, error: err.message, stores: [], settings: null });
+        if (!cancelled) setData({ loading: false, error: err.message, stores: [], settings: null, ratings: {} });
       });
     return () => {
       cancelled = true;
@@ -127,6 +127,12 @@ export default function Home() {
                 <div>
                   <h2 className="store-name">{s.name}</h2>
                   <p className="muted small">
+                    {data.ratings[s.id] ? (
+                      <span className="store-rating">
+                        <Star size={13} aria-hidden="true" />
+                        {Number(data.ratings[s.id].average).toFixed(1)} ({data.ratings[s.id].total}) ·{' '}
+                      </span>
+                    ) : null}
                     {s.town}, {etaOf(s)}
                   </p>
                 </div>

@@ -9,6 +9,7 @@ import BanigBand from '../components/BanigBand';
 import RouteMap from '../components/RouteMap';
 import RiderCard from '../components/RiderCard';
 import RateRider from '../components/RateRider';
+import RateStore from '../components/RateStore';
 
 const TRACKING_STATUSES = ['preparing', 'ready', 'on_the_way'];
 const STALE_AFTER_MS = 3 * 60 * 1000;
@@ -96,6 +97,8 @@ export default function TrackOrder() {
       {order.status === 'delivered' && order.rider_id && (
         <RateRider orderId={order.id} deliveredAt={order.delivered_at} now={now} />
       )}
+
+      {order.status === 'delivered' && <RateStore order={order} now={now} />}
 
       {order.status === 'declined' && (
         <p className="notice-box">Reason: {order.decline_reason}. You were not charged.</p>

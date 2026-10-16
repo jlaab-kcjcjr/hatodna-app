@@ -45,3 +45,24 @@ export function publicUrl(bucket, path) {
   if (!path) return '';
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
+
+// Store averages for the Home page: { [store_id]: { average, total } }. Ratings never block the page from loading.
+export async function fetchStoreRatings() {
+  const { data, error } = await supabase.rpc('store_rating_summaries');
+  if (error) return {};
+  return Object.fromEntries((data ?? []).map((r) => [r.store_id, { average: r.average, total: r.total }]));
+}
+
+// Each menu item's average for one store: { [product_id]: { average, total } }
+export async function fetchProductRatings(storeId) {
+  const { data, error } = await supabase.rpc('product_rating_summaries', { p_store_id: storeId });
+  if (error) return {};
+  return Object.fromEntries((data ?? []).map((r) => [r.product_id, { average: r.average, total: r.total }]));
+}
+
+// Latest reviews for a store page (reviewer shown as "Maria S.")
+export async function fetchStoreReviews(storeId) {
+  const { data, error } = await supabase.rpc('store_reviews_list', { p_store_id: storeId, p_limit: 10 });
+  if (error) return [];
+  return data ?? [];
+}
