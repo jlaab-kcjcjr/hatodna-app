@@ -66,3 +66,19 @@ export async function fetchStoreReviews(storeId) {
   if (error) return [];
   return data ?? [];
 }
+
+// Available products from active partner stores, for the Home page feed and search.
+// If this fails, Home still loads (just without products).
+export async function fetchProducts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select(
+      'id, name, description, price, image_path, store:stores!inner(id, name, town, category, is_open, status)'
+    )
+    .eq('is_available', true)
+    .eq('store.status', 'active')
+    .order('name')
+    .limit(300);
+  if (error) return [];
+  return data ?? [];
+}

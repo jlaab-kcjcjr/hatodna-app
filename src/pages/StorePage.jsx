@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { fetchStore, fetchProductRatings, fetchStoreReviews, fetchStoreRatings, etaOf, publicUrl } from '../lib/api';
@@ -11,6 +11,8 @@ import CartBar from '../components/CartBar';
 export default function StorePage() {
   const { storeId } = useParams();
   const { addItem, removeItem, qtyOf } = useCart();
+  const { hash } = useLocation();
+  const targetId = hash.startsWith('#p-') ? hash.slice(3) : null;
   const [data, setData] = useState({ loading: true, error: '', store: null, itemRatings: {}, reviews: [], rating: null });
 
   useEffect(() => {
@@ -28,6 +30,12 @@ export default function StorePage() {
       cancelled = true;
     };
   }, [storeId]);
+
+  // Coming from a product on Home: scroll to that item once the menu has loaded.
+  useEffect(() => {
+    if (data.loading || !targetId) return;
+    document.getElementById(`p-${targetId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [data.loading, targetId]);
 
   if (data.loading) return <p className="page-loading">Loading menu...</p>;
 
@@ -90,7 +98,11 @@ export default function StorePage() {
               const qty = qtyOf(p.id);
               const canOrder = store.is_open && p.is_available;
               return (
-                <li key={p.id} className={`menu-item${p.is_available ? '' : ' is-soldout'}`}>
+                <li
+                  key={p.id}
+                  id={`p-${p.id}`}
+                  className={`menu-item${p.is_available ? '' : ' is-soldout'}${p.id === targetId ? ' is-target' : ''}`}
+                >
                   {p.image_path && <img className="menu-thumb" src={publicUrl('product-images', p.image_path)} alt="" />}
                   <div className="menu-text">
                     <p className="menu-name">{p.name}</p>
